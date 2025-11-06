@@ -11,11 +11,8 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
-/**
- * Infrastructure adapter that connects the domain UserRepository with the JPA database.
- * It handles manual mapping between domain and persistence entities.
- */
 @Repository
 @Transactional
 public class UserRepositoryJpaAdapter implements UserRepository {
@@ -26,15 +23,29 @@ public class UserRepositoryJpaAdapter implements UserRepository {
         this.jpaRepository = jpaRepository;
     }
 
-    // ------------------------------
-    // Domain Repository Methods
-    // ------------------------------
-
     @Override
     public User save(User user) {
-        UserEntity entity = toEntity(user);
-        UserEntity saved = jpaRepository.save(entity);
-        return toDomain(saved);
+        // If user has no id -> create flow
+        if (user.getId() == null || user.getId().getValue() == null) {
+            UserEntity newEntity = toEntityForCreate(user);
+            UserEntity saved = jpaRepository.save(newEntity);
+            return toDomain(saved);
+        }
+
+        // If user has id -> update flow: load managed entity, update fields, save
+        UUID uuid = user.getId().getValue();
+        Optional<UserEntity> existingOpt = jpaRepository.findById(uuid);
+        if (existingOpt.isPresent()) {
+            UserEntity existing = existingOpt.get();
+            updateExistingEntityFromDomain(existing, user);
+            UserEntity saved = jpaRepository.save(existing); // merge/persist on managed entity
+            return toDomain(saved);
+        } else {
+            // ID provided but row does not exist -> treat as create (ensure id null to avoid detached issues)
+            UserEntity newEntity = toEntityForCreate(user);
+            UserEntity saved = jpaRepository.save(newEntity);
+            return toDomain(saved);
+        }
     }
 
     @Override
@@ -52,45 +63,55 @@ public class UserRepositoryJpaAdapter implements UserRepository {
         jpaRepository.deleteById(id.getValue());
     }
 
-    // ------------------------------
-    // Manual Mapping Logic
-    // ------------------------------
+    // --- mapping helpers ---
 
     /**
-     * Maps a Domain User to a JPA Entity.
+     * Create mapping for new entities: do NOT set id (let JPA generate it).
      */
-    private UserEntity toEntity(User domain) {
+    private UserEntity toEntityForCreate(User domain) {
         if (domain == null) return null;
-
         UserEntity entity = new UserEntity();
-        if (domain.getId() != null) {
-            entity.setId(domain.getId().getValue());
-        }
-
+        // do NOT set entity.id here
         entity.setFirstName(domain.getFirstName());
         entity.setLastName(domain.getLastName());
         entity.setEmail(domain.getEmail());
         entity.setRoleType(domain.getRoleType());
-
         if (domain.getSellerProfile() != null) {
             entity.setSellerProfile(toEmbeddable(domain.getSellerProfile()));
         }
-
         return entity;
     }
 
     /**
-     * Maps a JPA Entity to a Domain User.
+     * Update a managed entity with values from the domain aggregate.
+     * This keeps the entity managed by the persistence context and avoids detached exceptions.
      */
+    private void updateExistingEntityFromDomain(UserEntity existing, User domain) {
+        existing.setFirstName(domain.getFirstName());
+        existing.setLastName(domain.getLastName());
+        existing.setEmail(domain.getEmail());
+        existing.setRoleType(domain.getRoleType());
+
+        if (domain.getSellerProfile() != null) {
+            SellerProfileEmbeddable embed = toEmbeddable(domain.getSellerProfile());
+            existing.setSellerProfile(embed);
+        } else {
+            existing.setSellerProfile(null);
+        }
+    }
+
+    private UserEntity toEntity(User domain) {
+        // Keep as a convenience but prefer toEntityForCreate + updateExisting...
+        return toEntityForCreate(domain);
+    }
+
     private User toDomain(UserEntity entity) {
         if (entity == null) return null;
-
-        SellerProfile profile = entity.getSellerProfile() != null
-                ? toDomainProfile(entity.getSellerProfile())
-                : null;
+        SellerProfile profile = entity.getSellerProfile() != null ?
+                toDomainProfile(entity.getSellerProfile()) : null;
 
         return new User(
-                new UserId(entity.getId()),
+                new automach.profiles.domain.model.valueobjects.UserId(entity.getId()),
                 entity.getFirstName(),
                 entity.getLastName(),
                 entity.getEmail(),
@@ -99,12 +120,8 @@ public class UserRepositoryJpaAdapter implements UserRepository {
         );
     }
 
-    /**
-     * Maps a Domain SellerProfile to an Embeddable JPA object.
-     */
     private SellerProfileEmbeddable toEmbeddable(SellerProfile profile) {
         if (profile == null) return null;
-
         SellerProfileEmbeddable embeddable = new SellerProfileEmbeddable();
         embeddable.setRuc(profile.getRuc());
         embeddable.setBusinessType(profile.getBusinessType());
@@ -114,12 +131,8 @@ public class UserRepositoryJpaAdapter implements UserRepository {
         return embeddable;
     }
 
-    /**
-     * Maps an Embeddable SellerProfile to a Domain SellerProfile.
-     */
     private SellerProfile toDomainProfile(SellerProfileEmbeddable embeddable) {
         if (embeddable == null) return null;
-
         return new SellerProfile(
                 embeddable.getRuc(),
                 embeddable.getBusinessType(),

@@ -9,8 +9,12 @@ import java.util.UUID;
 public class UserEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(nullable = false, updatable = false)
     private UUID id;
+
+    @Version
+    private Long version;
 
     private String firstName;
     private String lastName;
@@ -40,4 +44,7 @@ public class UserEntity {
 
     public SellerProfileEmbeddable getSellerProfile() { return sellerProfile; }
     public void setSellerProfile(SellerProfileEmbeddable sellerProfile) { this.sellerProfile = sellerProfile; }
+
+    public Long getVersion() { return version; }
+    public void setVersion(Long version) { this.version = version; }
 }
