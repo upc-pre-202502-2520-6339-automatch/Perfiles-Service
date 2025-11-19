@@ -2,7 +2,6 @@ package automach.profiles.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -11,8 +10,8 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
-import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.web.SecurityFilterChain;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
@@ -31,18 +30,16 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // público (docs/health)
+                        // 🔓 PÚBLICO: swagger + actuator
                         .requestMatchers(
                                 "/actuator/**",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
-                                "/swagger-ui.html"
+                                "/swagger-ui.html",
+                                "/docs/**"
                         ).permitAll()
 
-                        // si necesitas abrir sólo GET públicos, deja esta línea; si no, bórrala
-                        //.requestMatchers(HttpMethod.GET, "/api/v1/vehicles/**").permitAll()
-
-                        // TODO: todo lo demás requiere JWT
+                        // 🔐 TODO LO DEMÁS REQUIERE JWT
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth -> oauth.jwt(jwt -> jwt
@@ -50,7 +47,6 @@ public class SecurityConfig {
                 ))
                 .build();
     }
-
 
     // Mapea claim "roles" -> ROLE_*
     private JwtAuthenticationConverter jwtAuthenticationConverter() {
@@ -67,7 +63,6 @@ public class SecurityConfig {
         return converter;
     }
 
-    // Decodificador con clave simétrica (HS384) usando tu secret local
     @Bean
     JwtDecoder jwtDecoder(org.springframework.core.env.Environment env) {
         String secret = env.getProperty("authorization.jwt.secret");
