@@ -1,34 +1,34 @@
 package automach.profiles.domain.model.valueobjects;
 
-import java.util.Objects;
-import java.util.UUID;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
 
+/**
+ * Value Object que representa el identificador del agregado User.
+ * Envuelve un Long porque toda la plataforma usa IDs Long.
+ */
+@Getter
+@EqualsAndHashCode
 public class UserId {
 
-    private final UUID value;
+    private final Long value;
 
-    public UserId(UUID value) {
+    public UserId(Long value) {
+        if (value == null) {
+            throw new IllegalArgumentException("UserId value must not be null");
+        }
+        if (value <= 0) {
+            throw new IllegalArgumentException("UserId value must be positive");
+        }
         this.value = value;
     }
 
-    public static UserId generate() {
-        return new UserId(UUID.randomUUID());
-    }
-
-    public UUID getValue() {
-        return value;
+    public static UserId of(Long value) {
+        return new UserId(value);
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof UserId)) return false;
-        UserId userId = (UserId) o;
-        return Objects.equals(value, userId.value);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(value);
+    public String toString() {
+        return String.valueOf(value);
     }
 }

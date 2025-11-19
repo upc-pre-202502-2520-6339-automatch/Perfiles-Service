@@ -1,4 +1,4 @@
-package automach.profiles.infrastructure.config;
+package automach.profiles.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -15,7 +15,7 @@ public class RestTemplateConfig {
     private String reniecToken;
 
     @Bean
-    public RestTemplate restTemplate() {
+    public RestTemplate reniecRestTemplate() {
         RestTemplate restTemplate = new RestTemplate();
 
         // Interceptor para añadir el header Authorization

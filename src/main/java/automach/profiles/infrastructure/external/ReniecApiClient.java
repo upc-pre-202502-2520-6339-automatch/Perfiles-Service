@@ -1,16 +1,15 @@
 package automach.profiles.infrastructure.external;
 
-
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.Map;
 
 /**
- * External client to call RENIEC API for person data lookup by DNI.
+ * Cliente externo para consultar la API de RENIEC (DNI -> datos personales).
  */
 @Component
 public class ReniecApiClient {
@@ -25,7 +24,7 @@ public class ReniecApiClient {
     }
 
     /**
-     * Calls RENIEC external API to get personal data by DNI.
+     * Llama a la API externa de RENIEC para obtener datos de una persona por DNI.
      */
     public Map<String, Object> getPersonByDni(String dni) {
         String url = UriComponentsBuilder
@@ -33,7 +32,9 @@ public class ReniecApiClient {
                 .queryParam("numero", dni)
                 .toUriString();
 
-        ResponseEntity<Map> response = restTemplate.getForEntity(url, Map.class);
+        ResponseEntity<Map<String, Object>> response =
+                restTemplate.getForEntity(url, (Class<Map<String, Object>>)(Class<?>)Map.class);
+
         return response.getBody();
     }
 }

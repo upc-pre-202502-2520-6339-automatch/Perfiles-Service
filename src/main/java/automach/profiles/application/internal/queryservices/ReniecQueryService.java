@@ -1,13 +1,13 @@
-package automach.profiles.domain.model.query;
-
+package automach.profiles.application.internal.queryservices;
 
 import automach.profiles.infrastructure.external.ReniecApiClient;
 import org.springframework.stereotype.Service;
+
 import java.util.Map;
 
 /**
- * Application service that provides user profile enrichment
- * or verification through RENIEC external API.
+ * Application service que orquesta la consulta a la API de RENIEC
+ * para enriquecer/perfil o validar información de usuarios.
  */
 @Service
 public class ReniecQueryService {
@@ -19,9 +19,11 @@ public class ReniecQueryService {
     }
 
     /**
-     * Retrieves person information from RENIEC given a DNI number.
+     * Obtiene la información de una persona en RENIEC dado su DNI.
      */
     public Map<String, Object> getPersonInfo(String dni) {
         return reniecApiClient.getPersonByDni(dni);
     }
 }
+
+
